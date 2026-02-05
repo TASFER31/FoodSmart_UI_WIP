@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">FoodSmart_UI_OVERVIEW</string>
+    <string name="foodsmart">FoodSmart</string>
+    <string name="smart_planning_zero_waste">Smart planning. Zero waste</string>
+    <string name="never_waste_groceries_again">\"Never waste groceries again!\"</string>
+    <string name="get_started">GET STARTED</string>
+</resources>
