@@ -3,8 +3,6 @@ package com.example.foodsmart_ui_overview
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
-import java.io.Serializable
-import java.text.SimpleDateFormat
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -16,8 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 class edit_item : AppCompatActivity() {
 
@@ -49,8 +45,6 @@ class edit_item : AppCompatActivity() {
 
     // Data
     private var quantity = 1
-    private var mode: String = "add"
-    private var originalItem: FoodItem? = null
 
     // ========================================
     // MAIN FUNCTION - RUNS WHEN SCREEN OPENS
@@ -76,16 +70,6 @@ class edit_item : AppCompatActivity() {
 
         // Make buttons work when clicked
         setupClickListeners()
-
-        // Determine mode and populate if editing
-        mode = intent.getStringExtra("mode") ?: "add"
-        if (mode == "edit") {
-            val item = intent.getSerializableExtra("item") as? FoodItem
-            if (item != null) {
-                originalItem = item
-                populateFields(item)
-            }
-        }
     }
 
     // ========================================
@@ -217,35 +201,12 @@ class edit_item : AppCompatActivity() {
             val inventory = spinnerInventory.selectedItem.toString()
             val category = spinnerCategory.selectedItem.toString()
 
-            val created = originalItem?.createdDate ?: SimpleDateFormat("MMMM d, yyyy • hh:mm a", Locale.getDefault()).format(Date())
-            val parsedPrice = price.toDoubleOrNull() ?: 0.0
-            val safeExpiry = if (expiryDate.isBlank()) "No expiry set" else expiryDate
-            val safeReminder = if (reminder.isBlank()) "No reminder set" else reminder
-            val safeName = if (itemName.isBlank()) "Unnamed Item" else itemName
+            // TODO: Save this data to database/storage
+            // For now, just go back to Stats_cards
 
-            val newItem = FoodItem(
-                id = originalItem?.id ?: java.util.UUID.randomUUID().toString(),
-                name = safeName,
-                category = category,
-                inventory = inventory,
-                storage = storage,
-                amount = amount,
-                quantity = quantity,
-                price = parsedPrice,
-                expiryDate = safeExpiry,
-                reminder = safeReminder,
-                createdDate = created,
-                isExpired = false,
-                emoji = "📦"
-            )
-
-            val resultIntent = Intent()
-            if (mode == "edit") {
-                resultIntent.putExtra("updated_item", newItem as Serializable)
-            } else {
-                resultIntent.putExtra("new_item", newItem as Serializable)
-            }
-            setResult(RESULT_OK, resultIntent)
+            val intent = Intent(this, Stats_cards::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            startActivity(intent)
             finish()
         }
     }
@@ -287,31 +248,4 @@ class edit_item : AppCompatActivity() {
         )
         return months[month]
     }
-
-    private fun populateFields(item: FoodItem) {
-        editItemName.setText(item.name)
-        editPrice.setText(item.price.toString())
-        editAmount.setText(item.amount)
-        editStorage.setText(item.storage)
-        tvExpiryDate.text = item.expiryDate
-        tvReminder.text = item.reminder
-        quantity = item.quantity
-        tvQuantity.text = quantity.toString()
-        setSpinnerSelectionByValue(spinnerCategory, item.category)
-        setSpinnerSelectionByValue(spinnerInventory, item.inventory)
-    }
-
-    private fun setSpinnerSelectionByValue(spinner: Spinner, value: String) {
-        val adapter = spinner.adapter
-        if (adapter is ArrayAdapter<*>) {
-            for (i in 0 until adapter.count) {
-                val item = adapter.getItem(i)?.toString() ?: ""
-                if (item.equals(value, ignoreCase = true)) {
-                    spinner.setSelection(i)
-                    return
-                }
-            }
-        }
-    }
 }
-

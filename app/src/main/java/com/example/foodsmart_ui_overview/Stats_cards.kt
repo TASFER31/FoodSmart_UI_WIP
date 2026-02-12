@@ -3,7 +3,6 @@ package com.example.foodsmart_ui_overview
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -13,9 +12,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import android.widget.LinearLayout
 import android.widget.TextView
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class Stats_cards : AppCompatActivity() {
 
@@ -28,29 +24,7 @@ class Stats_cards : AppCompatActivity() {
     private lateinit var expiringCard: TextView
     private lateinit var expiredCard: TextView
     private lateinit var itemAdapter: ItemAdapter          // ← NEW LINE
-    private var itemsList = ItemsStore.items      // ← NEW LINE
-    private val addItemLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val item = result.data?.getSerializableExtra("new_item") as? FoodItem
-            if (item != null) {
-                ItemsStore.addItem(item)
-                itemAdapter.updateItems(ItemsStore.items)
-                updateStatsCards()
-                showItems()
-            }
-        }
-    }
-    private val editItemLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val updated = result.data?.getSerializableExtra("updated_item") as? FoodItem
-            if (updated != null) {
-                ItemsStore.updateItem(updated)
-                itemAdapter.updateItems(ItemsStore.items)
-                updateStatsCards()
-                showItems()
-            }
-        }
-    }
+    private var itemsList = mutableListOf<FoodItem>()      // ← NEW LINE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,13 +69,11 @@ class Stats_cards : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         itemAdapter = ItemAdapter(
-            items = ItemsStore.items,
+            items = itemsList,
             onItemClick = { item ->
-                // Edit existing item
+                // When item clicked, edit it
                 val intent = Intent(this, edit_item::class.java)
-                intent.putExtra("mode", "edit")
-                intent.putExtra("item", item as java.io.Serializable)
-                editItemLauncher.launch(intent)
+                startActivity(intent)
             },
             onDeleteClick = { item, position ->
                 // When delete button clicked
@@ -120,7 +92,6 @@ class Stats_cards : AppCompatActivity() {
             .setPositiveButton("Delete") { _, _ ->
                 // Remove from list
                 itemAdapter.removeItem(position)
-                ItemsStore.deleteItem(item)
 
                 // TODO: Delete from database when backend is ready
                 // backend.deleteItem(item.id)
@@ -129,7 +100,7 @@ class Stats_cards : AppCompatActivity() {
                 updateStatsCards()
 
                 // Show empty state if no items left
-                if (ItemsStore.items.isEmpty()) {
+                if (itemsList.isEmpty()) {
                     showEmptyState()
                 }
 
@@ -143,7 +114,7 @@ class Stats_cards : AppCompatActivity() {
     private fun setupFabButton() {
         fabAdd.setOnClickListener {
             val intent = Intent(this, edit_item::class.java)
-            addItemLauncher.launch(intent)
+            startActivity(intent)
         }
     }
 
@@ -169,12 +140,11 @@ class Stats_cards : AppCompatActivity() {
     }
 
     private fun updateStatsCards() {
-        val totalDistinct = ItemsStore.items.size
-        val expiringSoon = ItemsStore.items.count { it.getExpiryStatus() == "Expiring Soon" }
-        val expired = ItemsStore.items.count { it.getExpiryStatus() == "Expired" }
-        totalItemsCard.text = totalDistinct.toString()
-        expiringCard.text = expiringSoon.toString()
-        expiredCard.text = expired.toString()
+        // TODO: Replace with real data from database
+        // For now, showing 0 items
+        totalItemsCard.text = "0"
+        expiringCard.text = "0"
+        expiredCard.text = "0"
     }
 
     private fun showEmptyState() {
@@ -187,16 +157,5 @@ class Stats_cards : AppCompatActivity() {
         // Hide empty state, show RecyclerView
         emptyState.visibility = View.GONE
         recyclerView.visibility = View.VISIBLE
-    }
-
-    override fun onResume() {
-        super.onResume()
-        ItemsStore.ensureExpiryEvents()
-        if (ItemsStore.items.isEmpty()) {
-            showEmptyState()
-        } else {
-            showItems()
-        }
-        updateStatsCards()
     }
 }
