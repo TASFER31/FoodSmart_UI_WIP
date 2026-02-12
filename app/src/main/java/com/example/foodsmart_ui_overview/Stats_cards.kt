@@ -3,6 +3,7 @@ package com.example.foodsmart_ui_overview
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.widget.SearchView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -31,12 +32,15 @@ class Stats_cards : AppCompatActivity() {
     private var itemsList = ItemsStore.items      // ← NEW LINE
     private val addItemLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
-            val item = result.data?.getSerializableExtra("new_item") as? FoodItem
+            val item = (result.data?.getSerializableExtra("new_item") as? FoodItem)
+                ?: (result.data?.getSerializableExtra("updated_item") as? FoodItem)
             if (item != null) {
                 ItemsStore.addItem(item)
                 itemAdapter.updateItems(ItemsStore.items)
                 updateStatsCards()
                 showItems()
+            } else {
+                android.widget.Toast.makeText(this, "No item returned", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -71,6 +75,9 @@ class Stats_cards : AppCompatActivity() {
 
         // Set up FAB click listener
         setupFabButton()
+
+        // Set up search
+        setupSearch()
 
         // Set up bottom navigation
         setupBottomNavigation()
@@ -198,5 +205,59 @@ class Stats_cards : AppCompatActivity() {
             showItems()
         }
         updateStatsCards()
+    }
+
+    private fun setupSearch() {
+        val searchView: SearchView = findViewById(R.id.searchView)
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                performFilter(query)
+                recyclerView.scrollToPosition(0)
+                return true
+            }
+            override fun onQueryTextChange(newText: String?): Boolean {
+                performFilter(newText)
+                return true
+            }
+        })
+    }
+
+    private fun performFilter(query: String?) {
+        val q = query?.trim() ?: ""
+        if (q.isEmpty()) {
+            itemAdapter.updateItems(ItemsStore.items)
+            if (ItemsStore.items.isEmpty()) {
+                showEmptyState()
+            } else {
+                showItems()
+                recyclerView.scrollToPosition(0)
+            }
+            return
+        }
+        val lc = q.lowercase(Locale.getDefault())
+        fun score(item: FoodItem): Int {
+            val name = item.name.lowercase(Locale.getDefault())
+            val cat = item.category.lowercase(Locale.getDefault())
+            return when {
+                name == lc -> 4
+                name.startsWith(lc) -> 3
+                cat.startsWith(lc) -> 2
+                name.contains(lc) -> 1
+                cat.contains(lc) -> 1
+                else -> 0
+            }
+        }
+        val filtered = ItemsStore.items
+            .map { it to score(it) }
+            .filter { it.second > 0 }
+            .sortedByDescending { it.second }
+            .map { it.first }
+        itemAdapter.updateItems(filtered)
+        if (filtered.isEmpty()) {
+            showEmptyState()
+        } else {
+            showItems()
+            recyclerView.scrollToPosition(0)
+        }
     }
 }
