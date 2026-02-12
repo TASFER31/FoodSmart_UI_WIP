@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.graphics.toColorInt
 
 class ItemAdapter(
     private var items: MutableList<FoodItem>,
@@ -48,7 +49,7 @@ class ItemAdapter(
         }
 
         val drawable = holder.statusIndicator.background as? GradientDrawable
-        drawable?.setColor(Color.parseColor(statusColor))
+        drawable?.setColor(statusColor.toColorInt())
 
         // Click to edit item
         holder.itemView.setOnClickListener {
